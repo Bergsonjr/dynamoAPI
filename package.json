@@ -1,0 +1,22 @@
+{
+    "name": "dynamoberg",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "scripts": {
+        "test": "mocha src/test/*.js",
+        "start": "nodemon server.js"
+    },
+    "dependencies": {
+        "aws-sdk": "^2.585.0",
+        "body-parser": "^1.19.0",
+        "dotenv": "^8.2.0",
+        "express": "^4.17.1"
+    },
+    "author": "Bergson Jr",
+    "license": "ISC",
+    "devDependencies": {
+        "mocha": "^6.2.2",
+        "nodemon": "^2.0.1"
+    }
+}
