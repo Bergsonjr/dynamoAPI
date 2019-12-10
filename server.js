@@ -1,8 +1,6 @@
-require('dotenv').config()
-
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
+const AWSconfig = require('./config');
 const express = require('express');
-const AWS = require('aws-sdk')
 const app = express();
 
 app.use(bodyParser.json())
@@ -17,33 +15,14 @@ app.use((req, res, next) => {
 });
 app.use(express.static('public'))
 
-app.get('/', (req, res) => {
+app.use('/', require('./routes'))
+
+/*app.get('/', (req, res) => {
     res.sendFile(__dirname + '/views/index.html');
-});
-
-//Alterar estrutura(refatoração)
-//Select table all tables
-app.get('/tables', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var dynamodb = new AWS.DynamoDB();
-    var params = {}
-
-    dynamodb.listTables(params, (err, data) => {
-        if (!err) {
-            res.status(200).json(data)
-        } else {
-            res.status(500).json(err)
-            console.log(err)
-        }
-    })
-});
+});*/
 
 //Select - GET(SCAN)
 app.get('/clientes', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
     var params = {
         TableName: 'clientes',
         FilterExpression: 'cidade = :city',
@@ -54,9 +33,9 @@ app.get('/clientes', (req, res) => {
         // ExclusiveStartKey: {nome: '', email: ''} -> para auxiliar em paginação de registros
     };
 
-    documentClient.scan(params, (err, data) => {
+    AWSconfig.doc.scan(params, (err, data) => {
         if (!err) {
-            res.json(data)
+            res.status(200).json(data)
         } else {
             res.status(500).json(err)
             console.log(err)
@@ -66,9 +45,6 @@ app.get('/clientes', (req, res) => {
 
 //Select - GET(QUERY)
 app.get('/clientes2', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
     var params = {
         TableName: 'clientes',
         KeyConditionExpression: 'email = :email and nome = :name',
@@ -78,9 +54,9 @@ app.get('/clientes2', (req, res) => {
         }
     };
 
-    documentClient.query(params, (err, data) => {
+    AWSconfig.doc.query(params, (err, data) => {
         if (!err) {
-            res.json(data)
+            res.status(200).json(data)
         } else {
             res.status(500).json(err)
             console.log(err)
@@ -90,9 +66,6 @@ app.get('/clientes2', (req, res) => {
 
 //Select - GET(BATCH)
 app.get('/clientesBatch', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
     var params = {
         RequestItems: {
             'clientes': {
@@ -110,34 +83,9 @@ app.get('/clientesBatch', (req, res) => {
         }
     }
 
-    documentClient.batchGet(params, (err, data) => {
+    AWSconfig.doc.batchGet(params, (err, data) => {
         if (!err) {
-            res.json(data)
-        } else {
-            res.status(500).json(err)
-            console.log(err)
-        }
-    })
-});
-
-//Select - GET
-app.get('/cliente', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
-    var params = {
-        TableName: 'clientes',
-        Key: {
-            email: req.query.email,
-            nome: req.query.nome
-        },
-        ConsistentRead: false, // false -> Eventually Consistent(CACHE) | true -> Strongly Consistent(DB)
-        ReturnConsumedCapacity: 'TOTAL'
-    };
-
-    documentClient.get(params, (err, data) => {
-        if (!err) {
-            res.json(data)
+            res.status(200).json(data)
         } else {
             res.status(500).json(err)
             console.log(err)
@@ -147,9 +95,6 @@ app.get('/cliente', (req, res) => {
 
 //Create - POST(BATCH)
 app.post('/clientesBatch', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
     var params = {
         RequestItems: {
             'clientes': [{
@@ -173,89 +118,9 @@ app.post('/clientesBatch', (req, res) => {
         }
     }
 
-    documentClient.batchWrite(params, (err, data) => {
+    AWSconfig.doc.batchWrite(params, (err, data) => {
         if (!err) {
-            res.json(data)
-        } else {
-            res.status(500).json(err)
-            console.log(err)
-        }
-    })
-});
-
-//Create - POST
-app.post('/cliente', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
-    var params = {
-        TableName: 'clientes',
-        Item: {
-            email: req.body.email,
-            nome: req.body.nome,
-            data_nascimento: req.body.data_nascimento,
-            cidade: req.body.cidade
-        }
-    };
-
-    documentClient.put(params, (err, data) => {
-        if (!err) {
-            res.json(data)
-        } else {
-            res.status(500).json(err)
-            console.log(err)
-        }
-    })
-});
-
-//Update - PUT
-app.put('/cliente', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
-    var params = {
-        TableName: 'clientes',
-        Key: {
-            email: req.body.email,
-            nome: req.body.nome,
-        },
-        UpdateExpression: 'set #d = :y',
-        ExpressionAttributeNames: {
-            '#d': 'data_nascimento',
-            '#d': 'cidade'
-        },
-        ExpressionAttributeValues: {
-            ':y': req.body.data_nascimento,
-            ':y': req.body.cidade
-        },
-    };
-
-    documentClient.update(params, (err, data) => {
-        if (!err) {
-            res.json(data)
-        } else {
-            res.status(500).json(err)
-            console.log(err)
-        }
-    })
-});
-
-//Delete - DELETE
-app.delete('/cliente', (req, res) => {
-    AWS.config.update({ region: process.env.REGION })
-
-    var documentClient = new AWS.DynamoDB.DocumentClient();
-    var params = {
-        TableName: 'clientes',
-        Key: {
-            email: req.body.email,
-            nome: req.body.nome,
-        },
-    };
-
-    documentClient.delete(params, (err, data) => {
-        if (!err) {
-            res.json(data)
+            res.status(201).json(data)
         } else {
             res.status(500).json(err)
             console.log(err)
